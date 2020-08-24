@@ -20,6 +20,10 @@ task "test": {
 
 actions: [
   {
+    tasks: ["build", "deploy"]
+    on push branches: ["master"]
+  },
+  {
     tasks: ["test"]
     on push: {
       branches: ["master"]
@@ -31,5 +35,25 @@ actions: [
       chatops: ["test"]
     }
   }
+
 ]
+resource "gitops-git": {
+  type: "git"
+  param url: "https://github.com/your-github-user/cicd-hello-world-gitops"
+}
+task "deploy": {
+  inputs: ["docker-image", "gitops-git"]
+  steps: [
+    {
+      name: "update-gitops-repo"
+      image: "mesosphere/update-gitops-repo:v1.1"
+      workingDir: "/workspace/gitops-git"
+      args: [
+        "-git-revision=$(context.git.commit)",
+        "-substitute=imageName=your-dockerhub-user/hello-world@$(inputs.resources.docker-image.digest)",
+        "-scm-provider=github"
+      ]
+    }
+  ]
+}
 
